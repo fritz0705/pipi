@@ -85,6 +85,7 @@ static void parse_argv(int argc, char **argv)
 				{
 					mpz_set_str(state.digits, argv[i], 10);
 					mpz_set(state.rounds, state.digits);
+					mpz_sub_ui(state.rounds, state.rounds, 1);
 				}
 				break;
 			case 1:
