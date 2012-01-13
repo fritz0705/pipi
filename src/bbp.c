@@ -73,9 +73,39 @@ void bbp_component(mpz_t k, unsigned long a, unsigned long b, mpq_t result)
 	mpq_clear(rat_c);
 }
 
-/* A BBP pow is a term like (a ^ (n*b) / c ^ n), where a, b and c are natural numbers.
- * Here I implement a bbp pow with a = 1, b = 0 and c = 16
+/* A BBP pow is a term like (a ^ (k*b) / c ^ k), where a, b and c are natural numbers.
  */
+void bbp_pow(mpz_t k, mpq_t result, unsigned int a, unsigned int b, unsigned int c)
+{
+	unsigned int k_ui = mpz_get_ui(k);
+
+	mpz_t int_c;
+	mpz_init_set_ui(int_c, c);
+
+	mpz_t denum;
+	mpz_init(denum);
+
+	mpz_pow_ui(denum, int_c, k_ui);
+
+	unsigned int num_exp = k_ui * b;
+	mpz_t int_a;
+	mpz_init_set_ui(int_a, a);
+
+	mpz_t numer;
+	mpz_init(numer);
+
+	mpz_pow_ui(numer, int_a, num_exp);
+
+	mpq_set_num(result, numer);
+	mpq_set_den(result, denum);
+
+	mpz_clear(numer);
+	mpz_clear(denum);
+	mpz_clear(int_a);
+	mpz_clear(int_c);
+}
+
+#if 0
 void bbp_pow(mpz_t k, mpq_t result)
 {
 	/* Get integer values of 16 and 0 */
@@ -108,10 +138,11 @@ void bbp_pow(mpz_t k, mpq_t result)
 	mpq_clear(rat_1);
 	mpq_clear(rat_pow_res);
 }
+#endif
 
 void bbp_round(mpz_t k, mpq_t result)
 {
-	mpq_t pow_component; mpq_init(pow_component); bbp_pow(k, pow_component);
+	mpq_t pow_component; mpq_init(pow_component); bbp_pow(k, pow_component, 1, 0, 16);
 	mpq_t add1_component; mpq_init(add1_component); bbp_component(k, 4, 1, add1_component);
 	mpq_t add2_component; mpq_init(add2_component); bbp_component(k, 2, 4, add2_component);
 	mpq_t add3_component; mpq_init(add3_component); bbp_component(k, 1, 5, add3_component);

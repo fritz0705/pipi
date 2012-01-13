@@ -25,5 +25,5 @@
 
 void bbp_loop(mpz_t _k, mpz_t rounds, mpq_t result);
 void bbp_round(mpz_t k, mpq_t result);
-void bbp_pow(mpz_t k, mpq_t result);
+void bbp_pow(mpz_t k, mpq_t result, unsigned int a, unsigned int b, unsigned int c);
 void bbp_component(mpz_t k, unsigned long a, unsigned long b, mpq_t result);
