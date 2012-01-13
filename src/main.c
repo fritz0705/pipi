@@ -21,35 +21,94 @@
  */
 
 #include <stdio.h>
-#include <gmp.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <gmp.h>
+#include <pthread.h>
+
 #include "bbp-pi.h"
 
-#ifndef ROUND_MULT
-#	define ROUND_MULT 1
-#endif
+enum pi_algo
+{
+	ALGO_BBP,
+	ALGO_3
+};
 
-#ifndef PRINT_BASE
-#	define PRINT_BASE 10
-#endif
-
-#ifdef WITH_THREADING
-#	ifndef THREADS
-#		define THREADS 4
-#	endif
-#	include <pthread.h>
-struct thread_info {
+struct thread_info
+{
 	pthread_t thread_id;
-	int       thread_num;
-	mpz_t k;
+	enum pi_algo algorithm;
+	
+	mpz_t start;
 	mpz_t rounds;
 	mpq_t result;
 };
-#endif
 
-static void print_mpq(mpq_t num, mpz_t digits)
+static struct {
+	int threads;
+	int base;
+	mpz_t digits;
+	mpz_t rounds;
+	enum pi_algo algorithm;
+} state = {
+	.threads = 1,
+	.base = 10,
+	.algorithm = ALGO_BBP
+};
+
+static void parse_argv(int argc, char **argv)
+{
+	mpz_init(state.digits);
+	mpz_init(state.rounds);
+	mpz_set_ui(state.digits, 64);
+	mpz_set_ui(state.rounds, 64);
+	state.threads = 1;
+
+	int pstate = 0;
+	for (int i = 1; i < argc; ++i)
+	{
+		switch (pstate)
+		{
+			case 0:
+				if (!strcmp(argv[i], "-threads"))
+					pstate = 1;
+				else if (!strcmp(argv[i], "-algo"))
+					pstate = 2;
+				else if (!strcmp(argv[i], "-base"))
+					pstate = 3;
+				else if (!strcmp(argv[i], "-rounds"))
+					pstate = 4;
+				else if (argv[i][0] == '-')
+					fprintf(stderr, "Invalid argument at position %d: %s\n", i, argv[i]);
+				else
+				{
+					mpz_set_str(state.digits, argv[i], 10);
+					mpz_set(state.rounds, state.digits);
+				}
+				break;
+			case 1:
+				state.threads = atoi(argv[i]);
+				pstate = 0;
+				break;
+			case 2:
+				if (!strcmp(argv[i], "bbp"))
+					state.algorithm = ALGO_BBP;
+				else if (!strcmp(argv[i], "3"))
+					state.algorithm = ALGO_3;
+				pstate = 0;
+				break;
+			case 3:
+				state.base = atoi(argv[i]);
+				pstate = 0;
+				break;
+			case 4:
+				mpz_set_str(state.rounds, argv[i], 10);
+		}
+	}
+}
+
+static void print_mpq(mpq_t num, mpz_t digits, unsigned int base)
 {
 	mpz_t numer;
 	mpz_t denum;
@@ -60,7 +119,7 @@ static void print_mpq(mpq_t num, mpz_t digits)
 	mpq_get_den(denum, num);
 
 	mpz_t int_base;
-	mpz_init_set_ui(int_base, PRINT_BASE);
+	mpz_init_set_ui(int_base, base);
 
 	mpz_t int_0;
 	mpz_init_set_ui(int_0, 0);
@@ -80,7 +139,7 @@ static void print_mpq(mpq_t num, mpz_t digits)
 
 	mpz_div(result, new_numer, denum);
 
-	mpz_out_str(stdout, PRINT_BASE, result);
+	mpz_out_str(stdout, base, result);
 	printf("\n");
 
 	mpz_clear(int_base);
@@ -92,86 +151,74 @@ static void print_mpq(mpq_t num, mpz_t digits)
 	mpz_clear(denum);
 }
 
-#ifdef WITH_THREADING
 static void *thread_main(struct thread_info *info)
 {
-	bbp_pi(info->k, info->rounds, info->result);
+	switch (info->algorithm)
+	{
+		case ALGO_BBP:
+			bbp_pi(info->start, info->rounds, info->result);
+			break;
+		case ALGO_3:
+			break;
+	}
 	return NULL;
 }
-#endif
 
-/* Usage: pipi [DIGITS] */
 int main(int argc, char **argv)
 {
-	mpz_t digits;
-	mpz_init(digits);
+	parse_argv(argc, argv);
 
-	mpz_set_ui(digits, 32);
-	if (argc >= 2)
-		for (int i = 1; i < argc; ++i)
-			if (strcmp(argv[i], "--"))
-				mpz_set_str(digits, argv[i], 10);
-
-	mpz_t rounds;
-	mpz_init(rounds);
-#if 1
+	struct thread_info *tinfos = calloc(state.threads, sizeof(struct thread_info));
+	if (tinfos == NULL)
 	{
-		mpz_t int_mult;
-		mpz_init_set_ui(int_mult, ROUND_MULT);
-
-		mpz_mul(rounds, int_mult, digits);
-		mpz_clear(int_mult);
+		perror("Could not allocate thread infos");
+		exit(1);
 	}
-#endif
 
-#ifndef WITH_THREADING
-	mpz_t k;
-	mpz_init_set_ui(k, 0);
+	/* Some threading attributes */
+	pthread_attr_t pattr;
+	pthread_attr_init(&pattr);
 
-	mpq_t result;
-	mpq_init(result);
-	bbp_pi(k, rounds, result);
+	/* Rounds per thread */
+	mpz_t roundspt;
+	mpz_init(roundspt);
 
-	print_mpq(result, digits);
-	mpq_clear(result);
-#else
-	mpz_t rounds_per_thread;
-	mpz_init(rounds_per_thread);
-	mpz_t k;
-	mpz_init(k);
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
+	mpz_cdiv_q_ui(roundspt, state.rounds, state.threads);
 
-	mpz_cdiv_q_ui(rounds_per_thread, rounds, THREADS);
+	/* Current offset */
+	mpz_t offset;
+	mpz_init(offset);
 
-	struct thread_info infos[THREADS];
-	for (int thread = 0; thread < THREADS; ++thread)
+	/* Create the threads */
+	for (int thread = 0; thread < state.threads; ++thread)
 	{
-		struct thread_info *info = &infos[thread];
+		struct thread_info *info = &tinfos[thread];
+		info->algorithm = state.algorithm;
 
-		mpz_init(info->k);
+		mpz_init(info->start);
 		mpz_init(info->rounds);
-		mpz_set(info->k, k);
-		mpz_set(info->rounds, rounds_per_thread);
 		mpq_init(info->result);
+	
+		mpz_set(info->rounds, roundspt);
+		mpz_set(info->start, offset);
 
-		int s = pthread_create(&info->thread_id, &attr, (void *(*)(void *))thread_main, info);
-		if (s != 0)
-			return 0;
+		pthread_create(&info->thread_id, &pattr, (void*(*)(void*))thread_main, info);
 
-		mpz_add(k, k, rounds_per_thread);
+		mpz_add(offset, offset, roundspt);
 	}
 
 	mpq_t result;
 	mpq_init(result);
-	for	(int thread = 0; thread < THREADS; ++thread)
+
+	/* Wait for the threads */
+	for (int thread = 0; thread < state.threads; ++thread)
 	{
 		void *retval;
-		pthread_join(infos[thread].thread_id, &retval);
+		pthread_join(tinfos[thread].thread_id, &retval);
 		if (retval != PTHREAD_CANCELED)
-			mpq_add(result, result, infos[thread].result);
+			mpq_add(result, result, tinfos[thread].result);
 	}
-	
-	print_mpq(result, digits);
-#endif
+
+	print_mpq(result, state.digits, state.base);
 }
+
