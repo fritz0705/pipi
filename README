@@ -4,7 +4,7 @@ pipi is a fast pi calculation software for educational purposes written in C usi
 
 Build
 -----
-Type ``make`` and you will get a executable named ``pipi``
+Type ``make`` and you will get a executable named ``pipi``. Use ``make CFLAGS="-DWITH_THREADING"`` to compile with multithreading.
 
 Usage
 -----

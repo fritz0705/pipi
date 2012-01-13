@@ -1,8 +1,8 @@
 CC := gcc
-override __CFLAGS := -O2 -g -std=gnu99 $(CFLAGS)
+override __CFLAGS := -Wall -Wextra -O2 -g -pthread -std=gnu99 $(CFLAGS)
 
 LD := $(CC)
-override __LDFLAGS := -lgmp $(LDFLAGS)
+override __LDFLAGS := -lgmp -pthread $(LDFLAGS)
 
 .PHONY: all
 all: pipi

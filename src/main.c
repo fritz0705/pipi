@@ -29,6 +29,20 @@
 #	define ROUND_MULT 1
 #endif
 
+#ifdef WITH_THREADING
+#	ifndef THREADS
+#		define THREADS 4
+#	endif
+#	include <pthread.h>
+struct thread_info {
+	pthread_t thread_id;
+	int       thread_num;
+	mpz_t k;
+	mpz_t rounds;
+	mpq_t result;
+};
+#endif
+
 /* Do something like: (a / (8*k +b)) */
 static void get_bbp_part(mpz_t k, unsigned long a, unsigned long b, mpq_t
 		result)
@@ -214,6 +228,14 @@ static void print_mpq(mpq_t num, mpz_t digits)
 	mpz_clear(denum);
 }
 
+#ifdef WITH_THREADING
+static void *thread_main(struct thread_info *info)
+{
+	bbp_loop(info->k, info->rounds, info->result);
+	return NULL;
+}
+#endif
+
 /* Usage: pipi [DIGITS] */
 int main(int argc, char **argv)
 {
@@ -238,6 +260,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifndef WITH_THREADING
 	mpz_t k;
 	mpz_init_set_ui(k, 0);
 
@@ -247,4 +270,44 @@ int main(int argc, char **argv)
 
 	print_mpq(result, digits);
 	mpq_clear(result);
+#else
+	mpz_t rounds_per_thread;
+	mpz_init(rounds_per_thread);
+	mpz_t k;
+	mpz_init(k);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+	mpz_cdiv_q_ui(rounds_per_thread, rounds, THREADS);
+
+	struct thread_info infos[THREADS];
+	for (int thread = 0; thread < THREADS; ++thread)
+	{
+		struct thread_info *info = &infos[thread];
+
+		mpz_init(info->k);
+		mpz_init(info->rounds);
+		mpz_set(info->k, k);
+		mpz_set(info->rounds, rounds_per_thread);
+		mpq_init(info->result);
+
+		int s = pthread_create(&info->thread_id, &attr, (void *(*)(void *))thread_main, info);
+		if (s != 0)
+			return 0;
+
+		mpz_add(k, k, rounds_per_thread);
+	}
+
+	mpq_t result;
+	mpq_init(result);
+	for	(int thread = 0; thread < THREADS; ++thread)
+	{
+		void *retval;
+		pthread_join(infos[thread].thread_id, &retval);
+		if (retval != PTHREAD_CANCELED)
+			mpq_add(result, result, infos[thread].result);
+	}
+	
+	print_mpq(result, digits);
+#endif
 }
