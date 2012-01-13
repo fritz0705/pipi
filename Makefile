@@ -7,7 +7,7 @@ override __LDFLAGS := -lgmp -pthread $(LDFLAGS)
 .PHONY: all
 all: pipi
 
-pipi: src/main.o
+pipi: src/main.o src/bbp.o
 	$(LD) $(__LDFLAGS) -o $@ $^
 
 %.o: %.c
