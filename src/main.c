@@ -29,6 +29,10 @@
 #	define ROUND_MULT 1
 #endif
 
+#ifndef PRINT_BASE
+#	define PRINT_BASE 10
+#endif
+
 #ifdef WITH_THREADING
 #	ifndef THREADS
 #		define THREADS 4
@@ -195,8 +199,8 @@ static void print_mpq(mpq_t num, mpz_t digits)
 	mpq_get_num(numer, num);
 	mpq_get_den(denum, num);
 
-	mpz_t int_10;
-	mpz_init_set_ui(int_10, 10);
+	mpz_t int_base;
+	mpz_init_set_ui(int_base, PRINT_BASE);
 
 	mpz_t int_0;
 	mpz_init_set_ui(int_0, 0);
@@ -205,7 +209,7 @@ static void print_mpq(mpq_t num, mpz_t digits)
 	mpz_init(mult);
 
 	unsigned int digits_int = mpz_get_ui(digits);
-	mpz_pow_ui(mult, int_10, digits_int);
+	mpz_pow_ui(mult, int_base, digits_int);
 
 	mpz_t new_numer;
 	mpz_init(new_numer);
@@ -216,10 +220,10 @@ static void print_mpq(mpq_t num, mpz_t digits)
 
 	mpz_div(result, new_numer, denum);
 
-	mpz_out_str(stdout, 10, result);
+	mpz_out_str(stdout, PRINT_BASE, result);
 	printf("\n");
 
-	mpz_clear(int_10);
+	mpz_clear(int_base);
 	mpz_clear(int_0);
 	mpz_clear(mult);
 	mpz_clear(new_numer);
