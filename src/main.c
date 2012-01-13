@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bbp.h"
+#include "bbp-pi.h"
 
 #ifndef ROUND_MULT
 #	define ROUND_MULT 1
@@ -95,7 +95,7 @@ static void print_mpq(mpq_t num, mpz_t digits)
 #ifdef WITH_THREADING
 static void *thread_main(struct thread_info *info)
 {
-	bbp_loop(info->k, info->rounds, info->result);
+	bbp_pi(info->k, info->rounds, info->result);
 	return NULL;
 }
 #endif
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 
 	mpq_t result;
 	mpq_init(result);
-	bbp_loop(k, rounds, result);
+	bbp_pi(k, rounds, result);
 
 	print_mpq(result, digits);
 	mpq_clear(result);
