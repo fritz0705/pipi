@@ -9,3 +9,7 @@ Type ``make`` and you will get a executable named ``pipi``. Use ``make CFLAGS="-
 Usage
 -----
     pipi DIGITS
+
+Todo
+----
+ - Implement Fabrice Bellard's formula to calculate Pi
