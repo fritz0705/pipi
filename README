@@ -1,0 +1,11 @@
+pipi
+====
+pipi is a fast pi calculation software for educational purposes written in C using GMP.
+
+Build
+-----
+Type ``make`` and you will get a executable named ``pipi``
+
+Usage
+-----
+    pipi DIGITS
