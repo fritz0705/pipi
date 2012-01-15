@@ -20,45 +20,46 @@
  * SOFTWARE.
  */
 
+#include <stdlib.h>
 #include "bbp.h"
 
-/* Components are terms in the form (a / (8*k + b)) where a and b are natural numbers
+/* Components are terms in the form (a / (c*k + b)) where a and b are natural numbers
  * A BBP formular consists of at least one component, so this function is useful
  * to reduce the code */
-void bbp_component(mpz_t k, unsigned long a, unsigned long b, mpq_t result)
+void bbp_component(mpz_t k, unsigned long a, unsigned long b, unsigned long c, mpq_t result)
 {
-	/* Integer 8 */
-	mpz_t int_8;
-	mpz_init_set_ui(int_8, 8);
+	/* Integer c */
+	mpz_t int_c;
+	mpz_init_set_ui(int_c, c);
 
-	/* Result of 8 * k */
-	mpz_t k_mul_8;
-	mpz_init(k_mul_8);
+	/* Result of c * k */
+	mpz_t k_mul_c;
+	mpz_init(k_mul_c);
 
-	mpz_mul(k_mul_8, k, int_8);
+	mpz_mul(k_mul_c, k, int_c);
 
-	/* Free the 8 */
-	mpz_clear(int_8);
+	/* Free the c */
+	mpz_clear(int_c);
 
 	/* Get GMP-representation of b */
 	mpz_t int_b;
 	mpz_init_set_ui(int_b, b);
 
-	/* Result of (8 * k + b) */
-	mpz_t k_mul_8_add_int_b;
-	mpz_init(k_mul_8_add_int_b);
+	/* Result of (c * k + b) */
+	mpz_t k_mul_c_add_int_b;
+	mpz_init(k_mul_c_add_int_b);
 
-	mpz_add(k_mul_8_add_int_b, k_mul_8, int_b);
+	mpz_add(k_mul_c_add_int_b, k_mul_c, int_b);
 
-	mpz_clear(k_mul_8);
+	mpz_clear(k_mul_c);
 	mpz_clear(int_b);
 
-	/* Get rational representation of c = (8 * k + b) */
+	/* Get rational representation of c = (c * k + b) */
 	mpq_t rat_c;
 	mpq_init(rat_c);
-	mpq_set_z(rat_c, k_mul_8_add_int_b);
+	mpq_set_z(rat_c, k_mul_c_add_int_b);
 
-	mpz_clear(k_mul_8_add_int_b);
+	mpz_clear(k_mul_c_add_int_b);
 
 	/* Get rational representation of a */
 	mpq_t rat_a;

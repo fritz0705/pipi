@@ -26,10 +26,10 @@
 static void bbp_pi_round(mpz_t k, mpq_t result)
 {
 	mpq_t pow_component; mpq_init(pow_component); bbp_pow(k, pow_component, 1, 0, 16);
-	mpq_t add1_component; mpq_init(add1_component); bbp_component(k, 4, 1, add1_component);
-	mpq_t add2_component; mpq_init(add2_component); bbp_component(k, 2, 4, add2_component);
-	mpq_t add3_component; mpq_init(add3_component); bbp_component(k, 1, 5, add3_component);
-	mpq_t add4_component; mpq_init(add4_component); bbp_component(k, 1, 6, add4_component);
+	mpq_t add1_component; mpq_init(add1_component); bbp_component(k, 4, 1, 8, add1_component);
+	mpq_t add2_component; mpq_init(add2_component); bbp_component(k, 2, 4, 8, add2_component);
+	mpq_t add3_component; mpq_init(add3_component); bbp_component(k, 1, 5, 8, add3_component);
+	mpq_t add4_component; mpq_init(add4_component); bbp_component(k, 1, 6, 8, add4_component);
 
 	/* add1 = add1_component - add2_component */
 	mpq_t add1;

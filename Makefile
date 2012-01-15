@@ -13,7 +13,7 @@ all: pipi
 threaded: __CFLAGS += -D WITH_THREADING -D THREADS=$(THREADS)
 threaded: pipi
 
-pipi: src/main.o src/bbp.o src/bbp-pi.o
+pipi: src/main.o src/bbp.o src/bbp-pi.o src/bellard.o
 	$(LD) $(__LDFLAGS) -o $@ $^
 
 %.o: %.c
