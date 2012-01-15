@@ -28,11 +28,13 @@
 #include <pthread.h>
 
 #include "bbp-pi.h"
+#include "bellard.h"
 
 enum pi_algo
 {
 	ALGO_BBP,
-	ALGO_3
+	ALGO_3,
+	ALGO_BELLARD
 };
 
 struct thread_info
@@ -97,6 +99,8 @@ static void parse_argv(int argc, char **argv)
 					state.algorithm = ALGO_BBP;
 				else if (!strcmp(argv[i], "3"))
 					state.algorithm = ALGO_3;
+				else if (!strcmp(argv[i], "bellard"))
+					state.algorithm = ALGO_BELLARD;
 				pstate = 0;
 				break;
 			case 3:
@@ -160,6 +164,9 @@ static void *thread_main(struct thread_info *info)
 			bbp_pi(info->start, info->rounds, info->result);
 			break;
 		case ALGO_3:
+			break;
+		case ALGO_BELLARD:
+			bellard_pi(info->start, info->rounds, info->result);
 			break;
 	}
 	return NULL;
