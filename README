@@ -1,15 +1,12 @@
 pipi
 ====
-pipi is a fast pi calculation software for educational purposes written in C using GMP.
+pipi is a fast pi calculation software for educational purposes written in C using GMP. It implements at the moment Plouffe's traditional BBP formula and Fabrice Bellard's optimized BBP formula.
 
 Build
 -----
-Type ``make`` and you will get a executable named ``pipi``. Use ``make CFLAGS="-DWITH_THREADING"`` to compile with multithreading.
+Type ``make`` and you will get an executable named ``pipi``.
 
 Usage
 -----
-    pipi DIGITS
+    pipi [-algo bellard|bbp] [-base N] [-rounds N] [-threads N] DIGITS
 
-Todo
-----
- - Implement Fabrice Bellard's formula to calculate Pi
